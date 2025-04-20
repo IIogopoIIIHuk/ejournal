@@ -64,9 +64,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth", "/registration").permitAll()
                         .requestMatchers(
-                                "/rooms",
-                                "/rooms/{id}",
-                                "/rooms/searchRoom",
+                                "/groups",
+                                "/groups/{id}",
+                                "/groups/search",
                                 "/comments/{roomId}",
                                 "/comments/{roomId}/add",
                                 "/receipts/**",
@@ -74,7 +74,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/img/**").permitAll()
                         .requestMatchers(
-                                "/rooms/**",
+                                "/groups/**",
                                 "/reservations/**",
                                 "/stats/**",
                                 "/users/**",

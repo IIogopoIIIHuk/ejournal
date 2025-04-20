@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -42,6 +43,9 @@ public class User {
     @Column(name = "phone")
     private String phone;
 
+    @Column(name = "enabled")
+    private boolean enabled = false;
+
 
     @ManyToMany
     @JoinTable(
@@ -51,6 +55,9 @@ public class User {
     )
     private Collection<Role> roles;
 
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private UserGroup group;
 
 
 }
