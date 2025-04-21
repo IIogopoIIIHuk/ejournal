@@ -67,9 +67,9 @@ public class SecurityConfig {
                                 "/groups",
                                 "/groups/{id}",
                                 "/groups/search",
-                                "/comments/{roomId}",
-                                "/comments/{roomId}/add",
-                                "/receipts/**",
+                                "/notes/**",
+                                "/absences/**",
+                                "/teachers/**",
                                 "/students/**",
                                 "/subjects/**"
                         ).permitAll()
