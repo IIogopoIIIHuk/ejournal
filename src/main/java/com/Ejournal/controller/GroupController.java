@@ -21,7 +21,6 @@ public class GroupController {
     private final UserGroupRepository groupRepo;
     private final UserRepository userRepo;
 
-    // Получить все группы
     @GetMapping
     public ResponseEntity<List<GroupDTO>> getAllGroups() {
         List<GroupDTO> groups = groupRepo.findAll().stream().map(group -> {
@@ -32,7 +31,6 @@ public class GroupController {
         return ResponseEntity.ok(groups);
     }
 
-    // Поиск по названию
     @GetMapping("/search")
     public ResponseEntity<List<GroupDTO>> searchGroups(@RequestParam String name) {
         List<UserGroup> found = groupRepo.findByNameContainingIgnoreCase(name);
@@ -44,7 +42,6 @@ public class GroupController {
         return ResponseEntity.ok(groups);
     }
 
-    // Добавить новую группу
     @PostMapping("/addGroup")
     public ResponseEntity<GroupDTO> addGroup(@RequestParam String name) {
         UserGroup group = new UserGroup();
@@ -58,7 +55,6 @@ public class GroupController {
         );
     }
 
-    // Редактировать название группы
     @PutMapping("/edit/{id}")
     public ResponseEntity<GroupDTO> editGroup(@PathVariable Long id, @RequestParam String name) {
         UserGroup group = groupRepo.findById(id)
@@ -70,7 +66,6 @@ public class GroupController {
         return ResponseEntity.ok(new GroupDTO(group.getId(), group.getName(), users));
     }
 
-    // Удалить группу (и отвязать студентов)
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteGroup(@PathVariable Long id) {
         UserGroup group = groupRepo.findById(id)
@@ -85,7 +80,6 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    // Получить студентов группы
     @GetMapping("/{groupId}")
     public ResponseEntity<GroupDTO> getGroupUsers(@PathVariable Long groupId) {
         UserGroup group = groupRepo.findById(groupId)
@@ -95,7 +89,6 @@ public class GroupController {
         return ResponseEntity.ok(new GroupDTO(group.getId(), group.getName(), users));
     }
 
-    // Добавить студента в группу
     @PutMapping("/{groupId}/addUser")
     public ResponseEntity<?> addUserToGroup(@PathVariable Long groupId, @RequestParam Long userId) {
         User user = userRepo.findById(userId)
@@ -109,7 +102,6 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    // Удалить студента из группы
     @PutMapping("/{groupId}/removeUser")
     public ResponseEntity<?> removeUserFromGroup(@PathVariable Long groupId, @RequestParam Long userId) {
         User user = userRepo.findById(userId)

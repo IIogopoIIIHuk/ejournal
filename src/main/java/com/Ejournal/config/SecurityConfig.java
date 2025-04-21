@@ -70,7 +70,8 @@ public class SecurityConfig {
                                 "/comments/{roomId}",
                                 "/comments/{roomId}/add",
                                 "/receipts/**",
-                                "/profile/**"
+                                "/students/**",
+                                "/subjects/**"
                         ).permitAll()
                         .requestMatchers("/img/**").permitAll()
                         .requestMatchers(
