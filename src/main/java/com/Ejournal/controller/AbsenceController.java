@@ -7,10 +7,7 @@ import com.Ejournal.repo.RoleRepository;
 import com.Ejournal.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -23,8 +20,7 @@ public class AbsenceController {
     private final RoleRepository roleRepository;
     private final AbsenceRepository absenceRepository;
 
-
-    @GetMapping("/{userId}/absences")
+    @GetMapping("/{userId}")
     public ResponseEntity<List<AbsenceDTO>> getAbsencesForStudent(@PathVariable Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Студент не найден"));
@@ -44,6 +40,20 @@ public class AbsenceController {
         return ResponseEntity.ok(absences);
     }
 
+    @GetMapping
+    public ResponseEntity<List<AbsenceDTO>> getAllAbsences() {
+        List<AbsenceDTO> absences = absenceRepository.findAll().stream().map(abs -> {
+            AbsenceDTO dto = new AbsenceDTO();
+            dto.setId(abs.getId());
+            dto.setDate(abs.getDate());
+            dto.setCount(abs.getCount());
+            dto.setReason(abs.getReason());
+            dto.setSubjectName(abs.getSubject() != null ? abs.getSubject().getName() : "");
+            dto.setStudentId(abs.getUser().getId());
+            dto.setStudentName(abs.getUser().getName());
+            return dto;
+        }).toList();
 
-
+        return ResponseEntity.ok(absences);
+    }
 }
