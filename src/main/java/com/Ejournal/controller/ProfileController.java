@@ -1,22 +1,21 @@
 package com.Ejournal.controller;
 
-import com.Ejournal.DTO.UserDTO;
-import com.Ejournal.entity.User;
 import com.Ejournal.entity.Role;
-import com.Ejournal.exception.AppError;
+import com.Ejournal.entity.Subject;
+import com.Ejournal.entity.User;
+import com.Ejournal.repo.SubjectRepository;
 import com.Ejournal.repo.UserRepository;
 import com.Ejournal.service.UserService;
+import com.Ejournal.exception.AppError;
+import com.Ejournal.DTO.UserDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -26,33 +25,53 @@ import java.util.stream.Collectors;
 public class ProfileController {
 
     private final UserRepository userRepository;
+    private final SubjectRepository subjectRepository;
     private final UserService userService;
-
 
     @Value("${upload.img}")
     protected String uploadImg;
 
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(){
-        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(currentUser)
+    public ResponseEntity<?> getCurrentUser() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        return ResponseEntity.ok(Map.of(
+        List<String> roles = user.getRoles().stream()
+                .map(Role::getName)
+                .toList();
+
+        Map<String, Object> response = Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
                 "name", user.getName(),
                 "phone", user.getPhone(),
                 "enabled", user.isEnabled(),
-                "roles", user.getRoles().stream().map(Role::getName).collect(Collectors.toList())
-        ));
+                "roles", roles
+        );
+
+        // Добавим доп. поля в зависимости от роли
+        if (roles.contains("ROLE_USER") && user.getGroup() != null) {
+            response = new java.util.HashMap<>(response);
+            ((Map<String, Object>) response).put("groupName", user.getGroup().getName());
+        }
+
+        if (roles.contains("ROLE_TEACHER")) {
+            List<String> subjects = subjectRepository.findAllByOwner(user).stream()
+                    .map(Subject::getName)
+                    .toList();
+            response = new java.util.HashMap<>(response);
+            ((Map<String, Object>) response).put("subjects", subjects);
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/edit")
-    public ResponseEntity<?> editProfile(@RequestBody UserDTO userDTO){
-        String currentUser = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(currentUser)
+    public ResponseEntity<?> editProfile(@RequestBody UserDTO userDTO) {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
         if (userDTO.getName() != null && !userDTO.getName().isEmpty()) {
@@ -64,17 +83,14 @@ public class ProfileController {
         if (userDTO.getUsername() != null && !userDTO.getUsername().isEmpty()) {
             user.setUsername(userDTO.getUsername());
         }
-        if (userDTO.getPhone() != null && !userDTO.getPhone().isEmpty()) {
-            user.setPhone(userDTO.getPhone());
-        }
-        if (userService.findByEmail(userDTO.getEmail()).isPresent()){
-            return new ResponseEntity<>(new AppError(HttpStatus.BAD_REQUEST.value(), "Пользователь с таким email уже существует"), HttpStatus.BAD_REQUEST);
-        }
         if (userDTO.getEmail() != null && !userDTO.getEmail().isEmpty()) {
+            if (userService.findByEmail(userDTO.getEmail()).isPresent()) {
+                return new ResponseEntity<>(new AppError(HttpStatus.BAD_REQUEST.value(), "Пользователь с таким email уже существует"), HttpStatus.BAD_REQUEST);
+            }
             user.setEmail(userDTO.getEmail());
         }
 
         userRepository.save(user);
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok("Профиль обновлён");
     }
 }

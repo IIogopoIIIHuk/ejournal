@@ -80,7 +80,8 @@ public class SecurityConfig {
                                 "/stats/**",
                                 "/users/**",
                                 "/comments/**",
-                                "/receipts/**"
+                                "/receipts/**",
+                                "/profile/**"
                         ).authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
