@@ -3,6 +3,7 @@ package com.Ejournal.service;
 
 import com.Ejournal.DTO.RegistrationUserDTO;
 import com.Ejournal.entity.User;
+import com.Ejournal.entity.Role;
 import com.Ejournal.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,16 @@ public class UserService implements UserDetailsService {
         user.setPassword(passwordEncoder.encode(registrationUserDto.getPassword()));
         user.setName(registrationUserDto.getName());
         user.setPhone(registrationUserDto.getPhone());
-        user.setRoles(List.of(roleService.getRole_User()));
+
+        // Выбираем роль
+        Role role;
+        if ("ROLE_TEACHER".equalsIgnoreCase(registrationUserDto.getRoleName())) {
+            role = roleService.getRole_Teacher();
+        } else {
+            role = roleService.getRole_User(); // По умолчанию студент
+        }
+
+        user.setRoles(List.of(role));
         return userRepository.save(user);
     }
 

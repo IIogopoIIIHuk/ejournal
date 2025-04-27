@@ -20,8 +20,8 @@ public class RoleService {
         return getUserRole("ROLE_USER");
     }
 
-    public Role getRole_Manager(){
-        return getUserRole("ROLE_MANAGER");
+    public Role getRole_Teacher(){
+        return getUserRole("ROLE_TEACHER");
     }
 
     public Role getUserRole(String roleName){

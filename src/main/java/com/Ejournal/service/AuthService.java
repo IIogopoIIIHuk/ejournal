@@ -69,6 +69,7 @@ public class AuthService {
         return ResponseEntity.ok(new UserDTO(user.getId(), user.getUsername(), user.getEmail(), user.getName(), user.getPhone()));
     }
 
+
     public UserDetails loadUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
