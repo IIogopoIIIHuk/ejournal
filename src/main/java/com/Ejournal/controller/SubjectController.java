@@ -23,8 +23,13 @@ public class SubjectController {
     private final AbsenceRepository absenceRepository;
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getAllSubjects() {
+    public ResponseEntity<List<Map<String, Object>>> getAllSubjectsByCurrentUser() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User owner = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
         List<Map<String, Object>> subjects = subjectRepository.findAll().stream()
+                .filter(subject -> subject.getOwner() != null && subject.getOwner().getId().equals(owner.getId()))
                 .map(subject -> Map.<String, Object>of(
                         "id", subject.getId(),
                         "name", subject.getName(),
@@ -32,8 +37,10 @@ public class SubjectController {
                         "groupName", subject.getGroup().getName()
                 ))
                 .toList();
+
         return ResponseEntity.ok(subjects);
     }
+
 
     @PostMapping("/add")
     public ResponseEntity<Map<String, Object>> addSubject(@RequestBody SubjectAddRequest request) {

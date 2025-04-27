@@ -72,11 +72,16 @@ public class StudentController {
 
         UserDTO studentDTO = mapToDTO(student);
         String attendance = calculateAttendanceStatus(student);
+
         List<NoteDTO> notes = noteRepository.findByOwner(student).stream()
                 .map(note -> {
                     NoteDTO dto = new NoteDTO();
                     dto.setId(note.getId());
-                    dto.setFile(note.getFile());
+                    if (note.getFile() != null) {
+                        dto.setFile("http://localhost:8080/img/notes/" + note.getFile());
+                    } else {
+                        dto.setFile(null);
+                    }
                     dto.setDateWith(note.getDateWith());
                     dto.setDateBy(note.getDateBy());
                     return dto;
@@ -89,10 +94,9 @@ public class StudentController {
                     dto.setDate(abs.getDate());
                     dto.setCount(abs.getCount());
                     dto.setReason(abs.getReason());
-                    dto.setSubjectName(abs.getSubject() != null ? abs.getSubject().getName() : ""); // safe
+                    dto.setSubjectName(abs.getSubject() != null ? abs.getSubject().getName() : "");
                     return dto;
                 }).toList();
-
 
         Map<String, Object> response = new HashMap<>();
         response.put("student", studentDTO);

@@ -11,6 +11,8 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -37,12 +39,20 @@ public class NoteController {
     private String uploadFileBaseUrl;
 
 
-
     @GetMapping
     public ResponseEntity<List<NoteDTO>> getAllNotes() {
-        List<NoteDTO> notes = noteRepository.findAll().stream().map(this::mapToDTO).toList();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        List<NoteDTO> notes = noteRepository.findByOwner(user).stream()
+                .map(this::mapToDTO)
+                .toList();
+
         return ResponseEntity.ok(notes);
     }
+
 
     @GetMapping("/{userId}")
     public ResponseEntity<List<NoteDTO>> getAllNotesByUser(@PathVariable Long userId) {
@@ -79,7 +89,11 @@ public class NoteController {
             ObjectMapper objectMapper = new ObjectMapper();
             NoteRequest request = objectMapper.readValue(noteJson, NoteRequest.class);
 
-            User user = userRepository.findById(request.getUserId())
+            // >>> Получаем текущего пользователя через SecurityContextHolder
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+
+            User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
             Note note = new Note();
@@ -92,7 +106,7 @@ public class NoteController {
 
             NoteDTO dto = new NoteDTO();
             dto.setId(note.getId());
-            dto.setFile(uploadFileBaseUrl + note.getFile()); // <<< Полная ссылка
+            dto.setFile(uploadFileBaseUrl + note.getFile());
             dto.setDateWith(note.getDateWith());
             dto.setDateBy(note.getDateBy());
 
@@ -102,6 +116,7 @@ public class NoteController {
             throw new RuntimeException("Ошибка загрузки файла: " + e.getMessage());
         }
     }
+
 
 
 

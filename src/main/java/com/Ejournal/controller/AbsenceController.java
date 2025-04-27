@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,13 +43,12 @@ public class AbsenceController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AbsenceDTO>> getAllAbsences() {
+    public ResponseEntity<?> getAllAbsences() {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        List<AbsenceDTO> absences = absenceRepository.findAll().stream()
-                .filter(abs -> abs.getUser().getId().equals(currentUser.getId())) // фильтрация по пользователю
+        List<AbsenceDTO> absences = absenceRepository.findByUser(currentUser).stream()
                 .map(abs -> {
                     AbsenceDTO dto = new AbsenceDTO();
                     dto.setId(abs.getId());
@@ -61,7 +61,27 @@ public class AbsenceController {
                     return dto;
                 }).toList();
 
-        return ResponseEntity.ok(absences);
+        int disrespectfulAbsences = absenceRepository.findByUser(currentUser).stream()
+                .filter(abs -> abs.getReason().name().equals("DISRESPECTFUL"))
+                .mapToInt(abs -> abs.getCount())
+                .sum();
+
+        String attendanceStatus;
+        if (disrespectfulAbsences < 10) {
+            attendanceStatus = "Хорошая посещаемость";
+        } else if (disrespectfulAbsences < 30) {
+            attendanceStatus = "Посещаемость в пределах нормы";
+        } else {
+            attendanceStatus = "Плохая посещаемость";
+        }
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "absences", absences,
+                        "attendanceStatus", attendanceStatus
+                )
+        );
     }
+
 
 }
