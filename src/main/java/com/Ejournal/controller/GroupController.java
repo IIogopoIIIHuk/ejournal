@@ -4,6 +4,7 @@ import com.Ejournal.DTO.GroupDTO;
 import com.Ejournal.DTO.UserDTO;
 import com.Ejournal.entity.User;
 import com.Ejournal.entity.UserGroup;
+import com.Ejournal.exception.ErrorResponse;
 import com.Ejournal.repo.UserGroupRepository;
 import com.Ejournal.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -96,11 +97,18 @@ public class GroupController {
         UserGroup group = groupRepo.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Группа не найдена"));
 
+        if (user.getGroup() != null) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new ErrorResponse(true, "Пользователь уже состоит в другой группе"));
+        }
+
         user.setGroup(group);
         userRepo.save(user);
 
         return ResponseEntity.ok().build();
     }
+
 
     @PutMapping("/{groupId}/removeUser")
     public ResponseEntity<?> removeUserFromGroup(@PathVariable Long groupId, @RequestParam Long userId) {
