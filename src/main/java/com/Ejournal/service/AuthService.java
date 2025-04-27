@@ -3,6 +3,7 @@ package com.Ejournal.service;
 import com.Ejournal.DTO.JwtRequest;
 import com.Ejournal.DTO.JwtResponse;
 import com.Ejournal.DTO.RegistrationUserDTO;
+import com.Ejournal.exception.ErrorResponse;
 import com.Ejournal.DTO.UserDTO;
 import com.Ejournal.entity.Role;
 import com.Ejournal.entity.User;
@@ -44,10 +45,15 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
             );
         } catch (BadCredentialsException e) {
-            return new ResponseEntity<>(new AppError(HttpStatus.UNAUTHORIZED.value(), "Неверный логин или пароль"), HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(new ErrorResponse(true, "Неверный логин или пароль"), HttpStatus.UNAUTHORIZED);
         }
+
         User user = userRepository.findByUsername(authRequest.getUsername())
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        if (!user.isEnabled()) {
+            return new ResponseEntity<>(new ErrorResponse(true, "Ваш аккаунт ещё не одобрен. Пожалуйста, дождитесь активации."), HttpStatus.FORBIDDEN);
+        }
 
         UserDetails userDetails = loadUserByUsername(authRequest.getUsername());
         String token = jwtTokenUtils.generateToken(userDetails);
@@ -58,6 +64,7 @@ public class AuthService {
 
         return ResponseEntity.ok(new JwtResponse(token, roles));
     }
+
 
     public ResponseEntity<?> createNewUser(RegistrationUserDTO registrationUserDTO) {
         if (userService.findByUsername(registrationUserDTO.getUsername()).isPresent() ||
