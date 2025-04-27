@@ -71,7 +71,8 @@ public class SecurityConfig {
                                 "/absences/**",
                                 "/teachers/**",
                                 "/students/**",
-                                "/subjects/**"
+                                "/subjects/**",
+                                "/img/notes/**"
                         ).permitAll()
                         .requestMatchers("/img/**").permitAll()
                         .requestMatchers(

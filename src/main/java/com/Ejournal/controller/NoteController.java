@@ -1,17 +1,25 @@
 package com.Ejournal.controller;
 
-import com.Ejournal.DTO.AbsenceDTO;
 import com.Ejournal.DTO.NoteDTO;
 import com.Ejournal.entity.Note;
 import com.Ejournal.entity.User;
 import com.Ejournal.repo.NoteRepository;
 import com.Ejournal.repo.UserRepository;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.*;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,78 +30,108 @@ public class NoteController {
     private final UserRepository userRepository;
 
 
-    @GetMapping()
-    public ResponseEntity<List<NoteDTO>> getAllNotes() {
-        List<NoteDTO> notes = noteRepository.findAll().stream().map(note -> {
-            NoteDTO dto = new NoteDTO();
-            dto.setId(note.getId());
-            dto.setFile(note.getFile());
-            dto.setDateWith(note.getDateWith());
-            dto.setDateBy(note.getDateBy());
-            return dto;
-        }).toList();
+    @Value("${upload.notes.path}")
+    private String uploadFileDir;
 
+    @Value("${upload.notes.baseurl}")
+    private String uploadFileBaseUrl;
+
+
+
+    @GetMapping
+    public ResponseEntity<List<NoteDTO>> getAllNotes() {
+        List<NoteDTO> notes = noteRepository.findAll().stream().map(this::mapToDTO).toList();
         return ResponseEntity.ok(notes);
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<List<NoteDTO>> getAllNotes(@PathVariable Long userId) {
+    public ResponseEntity<List<NoteDTO>> getAllNotesByUser(@PathVariable Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        List<NoteDTO> notes = noteRepository.findByOwner(user).stream().map(note -> {
-            NoteDTO dto = new NoteDTO();
-            dto.setId(note.getId());
-            dto.setFile(note.getFile());
-            dto.setDateWith(note.getDateWith());
-            dto.setDateBy(note.getDateBy());
-            return dto;
-        }).toList();
-
+        List<NoteDTO> notes = noteRepository.findByOwner(user).stream().map(this::mapToDTO).toList();
         return ResponseEntity.ok(notes);
     }
 
-
     @PostMapping("/add")
-    public ResponseEntity<NoteDTO> addNote(@RequestBody NoteRequest request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+    public ResponseEntity<NoteDTO> addNote(
+            @RequestPart(value = "note") String noteJson,
+            @RequestPart(value = "file", required = false) MultipartFile file) {
 
-        Note note = new Note();
-        note.setFile(request.getFile());
-        note.setDateWith(request.getDateWith());
-        note.setDateBy(request.getDateBy());
-        note.setOwner(user);
+        try {
+            String uploadedFileName = null;
 
-        noteRepository.save(note);
+            if (file != null && !file.getOriginalFilename().isEmpty()) {
+                String uuidFile = UUID.randomUUID().toString();
+                String fileName = uuidFile + "_" + file.getOriginalFilename();
 
-        NoteDTO dto = new NoteDTO();
-        dto.setId(note.getId());
-        dto.setFile(note.getFile());
-        dto.setDateWith(note.getDateWith());
-        dto.setDateBy(note.getDateBy());
+                Path uploadPath = Paths.get(uploadFileDir);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
 
-        return ResponseEntity.ok(dto);
+                Path filePath = uploadPath.resolve(fileName);
+                Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+                uploadedFileName = fileName;
+            }
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            NoteRequest request = objectMapper.readValue(noteJson, NoteRequest.class);
+
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+            Note note = new Note();
+            note.setFile(uploadedFileName);
+            note.setDateWith(request.getDateWith());
+            note.setDateBy(request.getDateBy());
+            note.setOwner(user);
+
+            noteRepository.save(note);
+
+            NoteDTO dto = new NoteDTO();
+            dto.setId(note.getId());
+            dto.setFile(uploadFileBaseUrl + note.getFile()); // <<< Полная ссылка
+            dto.setDateWith(note.getDateWith());
+            dto.setDateBy(note.getDateBy());
+
+            return ResponseEntity.ok(dto);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка загрузки файла: " + e.getMessage());
+        }
     }
+
+
 
     @DeleteMapping("/{id}/delete")
-    public ResponseEntity<NoteDTO> deleteNote(@PathVariable Long id) {
-        Note note = noteRepository.findById(id).orElseThrow(() -> new RuntimeException("Объяснительная не найдена"));
+    public ResponseEntity<?> deleteNote(@PathVariable Long id) {
+        Note note = noteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Объяснительная не найдена"));
+
         noteRepository.delete(note);
 
+        return ResponseEntity.ok(mapToDTO(note));
+    }
+
+    private NoteDTO mapToDTO(Note note) {
         NoteDTO dto = new NoteDTO();
         dto.setId(note.getId());
-        dto.setFile(note.getFile());
+        if (note.getFile() != null) {
+            dto.setFile(uploadFileBaseUrl + note.getFile());
+        } else {
+            dto.setFile(null);
+        }
         dto.setDateWith(note.getDateWith());
         dto.setDateBy(note.getDateBy());
-
-        return ResponseEntity.ok(dto);
+        return dto;
     }
+
 
     @Data
     public static class NoteRequest {
         private Long userId;
-        private String file;
         private String dateWith;
         private String dateBy;
     }

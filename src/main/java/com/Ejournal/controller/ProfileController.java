@@ -28,8 +28,6 @@ public class ProfileController {
     private final SubjectRepository subjectRepository;
     private final UserService userService;
 
-    @Value("${upload.img}")
-    protected String uploadImg;
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {

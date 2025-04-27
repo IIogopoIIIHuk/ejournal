@@ -6,6 +6,7 @@ import com.Ejournal.repo.*;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,10 +37,13 @@ public class SubjectController {
 
     @PostMapping("/add")
     public ResponseEntity<Map<String, Object>> addSubject(@RequestBody SubjectAddRequest request) {
+        // Получение текущего пользователя
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User owner = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
         UserGroup group = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new RuntimeException("Группа не найдена"));
-        User owner = userRepository.findById(request.getOwnerId())
-                .orElseThrow(() -> new RuntimeException("Преподаватель не найден"));
 
         Subject subject = new Subject();
         subject.setName(request.getName());
@@ -55,6 +59,7 @@ public class SubjectController {
                 "groupName", group.getName()
         ));
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getSubject(@PathVariable Long id) {
@@ -116,7 +121,8 @@ public class SubjectController {
                 "count", absence.getCount(),
                 "reason", absence.getReason().name(),
                 "studentId", student.getId(),
-                "studentName", student.getName()
+                "studentName", student.getName(),
+                "studentSubject", subject.getName()
         ));
     }
 
@@ -151,7 +157,6 @@ public class SubjectController {
     public static class SubjectAddRequest {
         private String name;
         private Long groupId;
-        private Long ownerId;
     }
 
     @Data

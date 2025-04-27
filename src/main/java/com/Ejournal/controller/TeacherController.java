@@ -2,6 +2,7 @@ package com.Ejournal.controller;
 
 import com.Ejournal.DTO.UserDTO;
 import com.Ejournal.entity.Role;
+import com.Ejournal.entity.Subject;
 import com.Ejournal.entity.User;
 import com.Ejournal.repo.AbsenceRepository;
 import com.Ejournal.repo.NoteRepository;
@@ -27,9 +28,8 @@ public class TeacherController {
     private final NoteRepository noteRepository;
     private final AbsenceRepository absenceRepository;
 
-
     @GetMapping
-    public ResponseEntity<?> getAllStudents() {
+    public ResponseEntity<?> getAllTeachers() {
         Role teacherRole = roleRepository.findByName("ROLE_TEACHER")
                 .orElseThrow(() -> new RuntimeException("Роль 'ROLE_TEACHER' не найдена"));
 
@@ -37,12 +37,15 @@ public class TeacherController {
                 .filter(user -> user.getRoles().contains(teacherRole))
                 .collect(Collectors.toList());
 
-        List<UserDTO> teacherDTOs = teachers.stream().map(this::mapToDTO).toList();
+        List<UserDTO> teacherDTOs = teachers.stream()
+                .map(this::mapToDTO)
+                .toList();
+
         return ResponseEntity.ok(teacherDTOs);
     }
 
     @GetMapping("/search")
-    public ResponseEntity<?> searchStudents(@RequestParam String name) {
+    public ResponseEntity<?> searchTeachers(@RequestParam String name) {
         Role teacherRole = roleRepository.findByName("ROLE_TEACHER")
                 .orElseThrow(() -> new RuntimeException("Роль 'ROLE_TEACHER' не найдена"));
 
@@ -51,10 +54,12 @@ public class TeacherController {
                 .filter(user -> user.getName() != null && user.getName().toLowerCase().contains(name.toLowerCase()))
                 .collect(Collectors.toList());
 
-        List<UserDTO> teacherDTOs = teachers.stream().map(this::mapToDTO).toList();
+        List<UserDTO> teacherDTOs = teachers.stream()
+                .map(this::mapToDTO)
+                .toList();
+
         return ResponseEntity.ok(teacherDTOs);
     }
-
 
     private UserDTO mapToDTO(User user) {
         UserDTO dto = new UserDTO();
@@ -67,6 +72,14 @@ public class TeacherController {
         dto.setRoles(user.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toList()));
+
+        // Добавляем предметы:
+        List<String> subjectNames = user.getSubjects().stream()
+                .map(Subject::getName)
+                .collect(Collectors.toList());
+        dto.setSubjects(subjectNames);
+
         return dto;
     }
+
 }

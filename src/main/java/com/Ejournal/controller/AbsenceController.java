@@ -7,6 +7,7 @@ import com.Ejournal.repo.RoleRepository;
 import com.Ejournal.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,18 +43,25 @@ public class AbsenceController {
 
     @GetMapping
     public ResponseEntity<List<AbsenceDTO>> getAllAbsences() {
-        List<AbsenceDTO> absences = absenceRepository.findAll().stream().map(abs -> {
-            AbsenceDTO dto = new AbsenceDTO();
-            dto.setId(abs.getId());
-            dto.setDate(abs.getDate());
-            dto.setCount(abs.getCount());
-            dto.setReason(abs.getReason());
-            dto.setSubjectName(abs.getSubject() != null ? abs.getSubject().getName() : "");
-            dto.setStudentId(abs.getUser().getId());
-            dto.setStudentName(abs.getUser().getName());
-            return dto;
-        }).toList();
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        List<AbsenceDTO> absences = absenceRepository.findAll().stream()
+                .filter(abs -> abs.getUser().getId().equals(currentUser.getId())) // фильтрация по пользователю
+                .map(abs -> {
+                    AbsenceDTO dto = new AbsenceDTO();
+                    dto.setId(abs.getId());
+                    dto.setDate(abs.getDate());
+                    dto.setCount(abs.getCount());
+                    dto.setReason(abs.getReason());
+                    dto.setSubjectName(abs.getSubject() != null ? abs.getSubject().getName() : "");
+                    dto.setStudentId(abs.getUser().getId());
+                    dto.setStudentName(abs.getUser().getName());
+                    return dto;
+                }).toList();
 
         return ResponseEntity.ok(absences);
     }
+
 }

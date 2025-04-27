@@ -1,16 +1,14 @@
 package com.Ejournal.DTO;
 
-
-import com.Ejournal.entity.Role;
+import com.Ejournal.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import com.Ejournal.entity.User;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
-@AllArgsConstructor
+@NoArgsConstructor
 public class UserDTO {
 
     private Long id;
@@ -20,10 +18,7 @@ public class UserDTO {
     private String phone;
     private boolean enabled;
     private List<String> roles;
-
-    public UserDTO() {
-
-    }
+    private List<String> subjects;
 
     public UserDTO(Long id, String username, String email, String name, String phone) {
         this.id = id;
@@ -42,6 +37,27 @@ public class UserDTO {
         this.enabled = enabled;
     }
 
+    public UserDTO(Long id, String username, String email, String name, String phone, boolean enabled, List<String> roles) {
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.name = name;
+        this.phone = phone;
+        this.enabled = enabled;
+        this.roles = roles;
+    }
+
+    public UserDTO(Long id, String username, String email, String name, String phone, boolean enabled, List<String> roles, List<String> subjects) {
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.name = name;
+        this.phone = phone;
+        this.enabled = enabled;
+        this.roles = roles;
+        this.subjects = subjects;
+    }
+
     public static UserDTO fromEntity(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
@@ -51,9 +67,8 @@ public class UserDTO {
         dto.setPhone(user.getPhone());
         dto.setEnabled(user.isEnabled());
         dto.setRoles(user.getRoles().stream().map(r -> r.getName()).toList());
+        dto.setSubjects(user.getSubjects().stream().map(s -> s.getName()).toList());
         return dto;
     }
-
-
-
 }
+
