@@ -45,12 +45,11 @@ public class UserService implements UserDetailsService {
         user.setName(registrationUserDto.getName());
         user.setPhone(registrationUserDto.getPhone());
 
-        // Выбираем роль
         Role role;
         if ("ROLE_TEACHER".equalsIgnoreCase(registrationUserDto.getRoleName())) {
             role = roleService.getRole_Teacher();
         } else {
-            role = roleService.getRole_User(); // По умолчанию студент
+            role = roleService.getRole_User();
         }
 
         user.setRoles(List.of(role));

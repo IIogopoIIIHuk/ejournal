@@ -44,7 +44,6 @@ public class SubjectController {
 
     @PostMapping("/add")
     public ResponseEntity<Map<String, Object>> addSubject(@RequestBody SubjectAddRequest request) {
-        // Получение текущего пользователя
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User owner = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));

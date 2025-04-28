@@ -4,19 +4,25 @@ import com.Ejournal.DTO.ChangePasswordRequest;
 import com.Ejournal.entity.Role;
 import com.Ejournal.entity.Subject;
 import com.Ejournal.entity.User;
+import com.Ejournal.exception.ErrorResponse;
 import com.Ejournal.repo.SubjectRepository;
 import com.Ejournal.repo.UserRepository;
 import com.Ejournal.service.UserService;
 import com.Ejournal.exception.AppError;
 import com.Ejournal.DTO.UserDTO;
+import com.Ejournal.utils.JwtTokenUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,6 +36,7 @@ public class ProfileController {
     private final SubjectRepository subjectRepository;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenUtils jwtTokenUtils;
 
 
 
@@ -78,6 +85,8 @@ public class ProfileController {
         User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
+        boolean usernameChanged = false;
+
         if (userDTO.getName() != null && !userDTO.getName().isEmpty()) {
             user.setName(userDTO.getName());
         }
@@ -86,6 +95,7 @@ public class ProfileController {
         }
         if (userDTO.getUsername() != null && !userDTO.getUsername().isEmpty()) {
             user.setUsername(userDTO.getUsername());
+            usernameChanged = true;
         }
         if (userDTO.getEmail() != null && !userDTO.getEmail().isEmpty()) {
             if (userService.findByEmail(userDTO.getEmail()).isPresent()) {
@@ -95,8 +105,51 @@ public class ProfileController {
         }
 
         userRepository.save(user);
-        return ResponseEntity.ok("Профиль обновлён");
+
+        // Формируем информацию о пользователе как в /me
+        List<String> roles = user.getRoles().stream()
+                .map(Role::getName)
+                .toList();
+
+        Map<String, Object> userInfo = new java.util.HashMap<>(Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "email", user.getEmail(),
+                "name", user.getName(),
+                "phone", user.getPhone(),
+                "enabled", user.isEnabled(),
+                "roles", roles
+        ));
+
+        if (roles.contains("ROLE_USER") && user.getGroup() != null) {
+            userInfo.put("groupName", user.getGroup().getName());
+        }
+
+        if (roles.contains("ROLE_TEACHER")) {
+            List<String> subjects = subjectRepository.findAllByOwner(user).stream()
+                    .map(Subject::getName)
+                    .distinct()
+                    .toList();
+            userInfo.put("subjects", subjects);
+        }
+
+        // Если username изменился — генерируем новый токен
+        if (usernameChanged) {
+            UserDetails userDetails = userService.loadUserByUsername(user.getUsername());
+            String newToken = jwtTokenUtils.generateToken(userDetails);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("user", userInfo);
+            response.put("token", newToken);
+
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.ok(userInfo);
+        }
     }
+
+
+
 
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
@@ -104,12 +157,11 @@ public class ProfileController {
         User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        // Проверяем старый пароль
+
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            return ResponseEntity.badRequest().body("Неверный старый пароль");
+            return ResponseEntity.badRequest().body(new ErrorResponse(true, "Неверно введен старый пароль"));
         }
 
-        // Устанавливаем новый пароль
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
