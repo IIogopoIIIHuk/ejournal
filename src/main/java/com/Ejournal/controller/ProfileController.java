@@ -138,8 +138,15 @@ public class ProfileController {
             UserDetails userDetails = userService.loadUserByUsername(user.getUsername());
             String newToken = jwtTokenUtils.generateToken(userDetails);
 
+            // Формируем окончательный ответ с токеном в формате как на скриншоте
             Map<String, Object> response = new HashMap<>();
-            response.put("user", userInfo);
+            response.put("phone", user.getPhone());
+            response.put("roles", userInfo.get("roles"));
+            response.put("name", user.getName());
+            response.put("id", user.getId());
+            response.put("enabled", user.isEnabled());
+            response.put("email", user.getEmail());
+            response.put("username", user.getUsername());
             response.put("token", newToken);
 
             return ResponseEntity.ok(response);
@@ -147,6 +154,8 @@ public class ProfileController {
             return ResponseEntity.ok(userInfo);
         }
     }
+
+
 
 
 

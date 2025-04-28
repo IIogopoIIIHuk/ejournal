@@ -12,4 +12,6 @@ public class AbsenceDTO {
     private String subjectName;
     private Long studentId;
     private String studentName;
+    private String groupName;
+
 }

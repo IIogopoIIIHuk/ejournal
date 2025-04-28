@@ -30,7 +30,9 @@ public class StatsController {
         int absencesDisrespectful = 0;
         int absencesRespectful = 0;
 
-        List<AbsenceDTO> absenceDTOs = absences.stream().map(this::mapToDTO).collect(Collectors.toList());
+        List<AbsenceDTO> absenceDTOs = absences.stream()
+                .map(this::mapToDTO) // Здесь добавляется groupName
+                .collect(Collectors.toList());
 
         for (Absence absence : absences) {
             if (absence.getReason() == Reason.DISRESPECTFUL) {
@@ -65,7 +67,9 @@ public class StatsController {
         int absencesDisrespectful = 0;
         int absencesRespectful = 0;
 
-        List<AbsenceDTO> absenceDTOs = absences.stream().map(this::mapToDTO).collect(Collectors.toList());
+        List<AbsenceDTO> absenceDTOs = absences.stream()
+                .map(this::mapToDTO) // Здесь добавляется groupName
+                .collect(Collectors.toList());
 
         for (Absence absence : absences) {
             if (absence.getReason() == Reason.DISRESPECTFUL) {
@@ -88,6 +92,7 @@ public class StatsController {
         return ResponseEntity.ok(response);
     }
 
+
     private AbsenceDTO mapToDTO(Absence absence) {
         AbsenceDTO dto = new AbsenceDTO();
         dto.setId(absence.getId());
@@ -97,8 +102,14 @@ public class StatsController {
 
         if (absence.getSubject() != null) {
             dto.setSubjectName(absence.getSubject().getName());
+            if (absence.getSubject().getGroup() != null) {
+                dto.setGroupName(absence.getSubject().getGroup().getName()); // Добавляем groupName
+            } else {
+                dto.setGroupName(null);
+            }
         } else {
             dto.setSubjectName(null);
+            dto.setGroupName(null); // Если нет subject, то groupName тоже null
         }
 
         if (absence.getUser() != null) {
@@ -108,6 +119,7 @@ public class StatsController {
 
         return dto;
     }
+
 
     @Data
     public static class StatsResponse {
