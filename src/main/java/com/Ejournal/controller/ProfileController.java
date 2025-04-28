@@ -62,10 +62,12 @@ public class ProfileController {
         if (roles.contains("ROLE_TEACHER")) {
             List<String> subjects = subjectRepository.findAllByOwner(user).stream()
                     .map(Subject::getName)
+                    .distinct()
                     .toList();
             response = new java.util.HashMap<>(response);
             ((Map<String, Object>) response).put("subjects", subjects);
         }
+
 
         return ResponseEntity.ok(response);
     }
